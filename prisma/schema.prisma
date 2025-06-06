@@ -14,7 +14,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("MIGRATION_DATABASE_URL")
 }
 
 // User model representing both Strava and Discord users

@@ -1,13 +1,11 @@
-# Strava Discord Bot
-
-A Discord bot that integrates with Strava to share activity updates in Discord channels.
+# Athletiqly
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL 14+
-- Redis 6+
+- PostgreSQL
+- Redis
 - Docker & Docker Compose (for containerized development)
 
 ### Development Setup
@@ -15,7 +13,7 @@ A Discord bot that integrates with Strava to share activity updates in Discord c
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd strava-discord-bot
+   cd athletiqly
    ```
 
 2. Install dependencies:

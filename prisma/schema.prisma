@@ -8,12 +8,13 @@ generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
   binaryTargets = [ "native", "linux-musl-openssl-3.0.x" ]
+  seed          = "ts-node --transpile-only prisma/seed.ts"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL") // Used for migrations and direct connections
+  directUrl = env("MIGRATION_DATABASE_URL")
 }
 
 // User model representing both Strava and Discord users

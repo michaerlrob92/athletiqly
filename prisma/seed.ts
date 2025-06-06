@@ -1,16 +1,18 @@
 import { PrismaClient } from '../src/generated/prisma';
+import { logger } from '../src/utils/logger';
 
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
-  // Clean the database
+  logger.info('Cleaning the database...');
   await prisma.webhookEvent.deleteMany();
   await prisma.activity.deleteMany();
   await prisma.userServerMembership.deleteMany();
   await prisma.discordServer.deleteMany();
   await prisma.user.deleteMany();
+  logger.info('Database cleaned.');
 
-  // Create test users
+  logger.info('Creating test users...');
   const users = await Promise.all([
     prisma.user.create({
       data: {
@@ -49,8 +51,9 @@ async function main(): Promise<void> {
       },
     }),
   ]);
+  logger.info('Test users created.');
 
-  // Create test Discord servers
+  logger.info('Creating test Discord servers...');
   const servers = await Promise.all([
     prisma.discordServer.create({
       data: {
@@ -77,8 +80,9 @@ async function main(): Promise<void> {
       },
     }),
   ]);
+  logger.info('Test Discord servers created.');
 
-  // Create user-server memberships
+  logger.info('Creating user-server memberships...');
   await Promise.all([
     prisma.userServerMembership.create({
       data: {
@@ -114,8 +118,9 @@ async function main(): Promise<void> {
       },
     }),
   ]);
+  logger.info('User-server memberships created.');
 
-  // Create test activities
+  logger.info('Creating test activities...');
   await Promise.all([
     // Running activities
     prisma.activity.create({
@@ -192,8 +197,9 @@ async function main(): Promise<void> {
       },
     }),
   ]);
+  logger.info('Test activities created.');
 
-  // Create test webhook events
+  logger.info('Creating test webhook events...');
   await Promise.all([
     prisma.webhookEvent.create({
       data: {
@@ -231,12 +237,21 @@ async function main(): Promise<void> {
       },
     }),
   ]);
+  logger.info('Test webhook events created.');
+
+  logger.info('Seeding completed successfully.');
 }
 
 main()
-  .catch(() => {
+  .catch(error => {
+    logger.error('Error during seeding:', error);
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    try {
+      await prisma.$disconnect();
+    } catch (error) {
+      logger.error('Error disconnecting from database:', error);
+      process.exit(1);
+    }
   });

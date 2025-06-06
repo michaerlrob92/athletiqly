@@ -39,7 +39,10 @@ export default defineConfig([globalIgnores(["**/dist/", "**/node_modules/"]), {
         parserOptions: {
             project: "./tsconfig.json",
         },
+        
     },
+
+    ignores: ["**/*.d.ts", "**/generated/**/*"],
 
     rules: {
         "prettier/prettier": "error",

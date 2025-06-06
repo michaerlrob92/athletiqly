@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { config } from '@/config/environment';
 import { logger } from '@/utils/logger';
+import healthRoutes from './routes/health.routes';
 
 const app = express();
 
@@ -36,13 +37,7 @@ if (config.NODE_ENV !== 'production') {
   );
 }
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-  });
-});
+// Routes
+app.use('/', healthRoutes);
 
 export default app;

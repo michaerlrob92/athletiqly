@@ -12,11 +12,13 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://user:password@postgres:5432/athletiqly_db
+      - DATABASE_URL=postgresql://user:password@pgbouncer:6432/athletiqly_db?pgbouncer=true
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - postgres
-      - redis
+      pgbouncer:
+        condition: service_started
+      redis:
+        condition: service_started
     networks:
       - athletiqly-network
 
@@ -30,6 +32,34 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - athletiqly-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d athletiqly_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.18.0
+    environment:
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_HOST: postgres
+      DB_NAME: athletiqly_db
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 20
+      RESERVE_POOL_SIZE: 5
+      RESERVE_POOL_TIMEOUT: 3
+      MAX_DB_CONNECTIONS: 50
+      SERVER_RESET_QUERY: DISCARD ALL
+      SERVER_RESET_QUERY_ALWAYS: 1
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - athletiqly-network
 

@@ -1,0 +1,51 @@
+services:
+  athletiqly:
+    image: athletiqly
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:password@postgres:5432/athletiqly_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - athletiqly-network
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: athletiqly_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - athletiqly-network
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - athletiqly-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  athletiqly-network:
+    driver: bridge

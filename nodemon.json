@@ -1,0 +1,17 @@
+{
+  "restartable": "rs",
+  "ignore": [
+    "node_modules",
+    "dist",
+    "src/**/*.spec.ts"
+  ],
+  "watch": [
+    "src"
+  ],
+  "ext": "ts,js,json",
+  "exec": "ts-node --project tsconfig.json -r tsconfig-paths/register src/server.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": "500"
+}

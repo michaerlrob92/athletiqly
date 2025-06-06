@@ -46,7 +46,12 @@ export default defineConfig([globalIgnores(["**/dist/", "**/node_modules/"]), {
 
     rules: {
         "prettier/prettier": "error",
-        "@typescript-eslint/no-unused-vars": "error",
+        "@typescript-eslint/no-unused-vars": ["error", {
+            "varsIgnorePattern": "^_",
+            "argsIgnorePattern": "^_",
+            "ignoreRestSiblings": true,
+            "enumsIgnorePattern": "^[A-Z_]+$"  // Ignore enum values that are all caps
+        }],
         "@typescript-eslint/explicit-function-return-type": "warn",
         "@typescript-eslint/no-explicit-any": "warn",
         "no-console": "warn",

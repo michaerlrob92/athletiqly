@@ -19,7 +19,12 @@
       "@/*": ["*"],
       "@/types/*": ["types/*"],
       "@/utils/*": ["utils/*"],
-      "@/config/*": ["config/*"]
+      "@/config/*": ["config/*"],
+      "@/middleware/*": ["middleware/*"],
+      "@/routes/*": ["routes/*"],
+      "@/services/*": ["services/*"],
+      "@/controllers/*": ["controllers/*"],
+      "@/models/*": ["models/*"],
     }
   },
   "include": [

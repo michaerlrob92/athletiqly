@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
+import dotenvExpand from 'dotenv-expand';
 import { z } from 'zod';
 
-dotenv.config();
+const env = dotenv.config();
+dotenvExpand.expand(env);
 
 const envSchema = z.object({
   NODE_ENV: z
@@ -9,7 +11,6 @@ const envSchema = z.object({
     .default('development'),
   PORT: z.string().transform(Number).default('3000'),
   DATABASE_URL: z.string(),
-  REDIS_URL: z.string(),
   STRAVA_CLIENT_ID: z.string(),
   STRAVA_CLIENT_SECRET: z.string(),
   DISCORD_BOT_TOKEN: z.string(),
@@ -17,5 +18,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
 });
+
+console.log('Environment variables:' + JSON.stringify(envSchema.parse(process.env)));
 
 export const config = envSchema.parse(process.env);

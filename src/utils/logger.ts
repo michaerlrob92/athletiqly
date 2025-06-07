@@ -216,7 +216,7 @@ const logger = winston.createLogger({
   ],
   exceptionHandlers: [
     new winston.transports.File({
-      filename: path.join('logs', 'exception.log'),
+      filename: path.join('logs', 'exceptions.log'),
     }),
   ],
   rejectionHandlers: [

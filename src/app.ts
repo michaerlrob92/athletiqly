@@ -6,12 +6,10 @@ import rateLimit from 'express-rate-limit';
 import { config } from '@/config/environment';
 import { stream } from '@/utils/logger';
 import healthRoutes from '@/routes/health.routes';
-import { requestIdMiddleware } from '@/middleware/request-id.middleware';
 import { notFoundHandler } from '@/middleware/error.middleware';
+import { checkJwt } from '@/middleware/auth.middleware';
 
 const app = express();
-
-app.use(requestIdMiddleware);
 
 // Security middleware
 app.use(helmet());
@@ -38,6 +36,10 @@ if (config.NODE_ENV !== 'production') {
 
 // Routes
 app.use('/health', healthRoutes);
+
+app.get('/', checkJwt, (req, res) => {
+  res.send('Hello World');
+});
 
 // Not found handler (after all routes)
 app.use(notFoundHandler);

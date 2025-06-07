@@ -1,7 +1,6 @@
 import { Request, Response, RequestHandler } from 'express';
 import { ErrorResponse, HttpStatus, ErrorCode } from '@/types/errors';
 import { logger } from '../utils/logger';
-import { RequestWithId } from './request-id.middleware';
 
 /**
  * Not found handler for unmatched routes.
@@ -32,7 +31,6 @@ export const notFoundHandler: RequestHandler = (
   req: Request,
   res: Response
 ): void => {
-  const requestId = (req as RequestWithId).id;
   const errorResponse: ErrorResponse = {
     code: ErrorCode.NOT_FOUND_ERROR,
     message: `Route ${req.method} ${req.originalUrl} not found`,
@@ -42,7 +40,6 @@ export const notFoundHandler: RequestHandler = (
   };
 
   logger.warn('Route not found', {
-    requestId,
     method: req.method,
     path: req.originalUrl,
     response: errorResponse,

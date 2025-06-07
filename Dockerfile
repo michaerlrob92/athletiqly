@@ -9,8 +9,15 @@ COPY package*.json ./
 FROM base AS development
 RUN --mount=type=cache,target=/root/.npm npm install
 COPY . .
+
+# Set environment to development
+ENV NODE_ENV=development
+
+# Expose the port
 EXPOSE 3000
-CMD ["npx", "ts-node", "-r", "tsconfig-paths/register", "src/server.ts"]
+
+# Use nodemon for development with proper error handling
+CMD ["sh", "-c", "npm run dev"]
 
 # Production stage
 FROM base AS production

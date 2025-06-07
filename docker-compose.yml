@@ -10,6 +10,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      - ./logs:/app/logs
     environment:
       - NODE_ENV=development
       - DATABASE_HOST=postgres:5432
@@ -19,6 +20,7 @@ services:
         condition: service_healthy
     networks:
       - athletiqly-network
+    restart: unless-stopped
 
   postgres:
     image: postgres:17-alpine

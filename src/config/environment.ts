@@ -17,8 +17,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  AUTH0_AUDIENCE: z.string(),
+  AUTH0_DOMAIN: z.string()
 });
-
-console.log('Environment variables:' + JSON.stringify(envSchema.parse(process.env)));
 
 export const config = envSchema.parse(process.env);

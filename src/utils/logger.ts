@@ -1,54 +1,150 @@
 import winston from 'winston';
 import path from 'path';
-import { config } from '../config/environment';
-import { AppError, ErrorResponse } from '../types/errors';
+import { config } from '@/config/environment';
+import { AppError, ErrorCode, HttpStatus } from '@/types/errors';
+
+// Define types for our log metadata
+interface RequestContext {
+  method: string;
+  url: string;
+  ip: string;
+  userAgent: string;
+}
+
+interface LogMetadata {
+  correlationId?: string;
+  request?: RequestContext;
+  [key: string]: unknown;
+}
+
+interface LogInfo extends winston.Logform.TransformableInfo {
+  metadata?: LogMetadata;
+  correlationId?: string;
+  request?: RequestContext;
+  type?: 'AppError' | 'Error';
+  code?: ErrorCode;
+  status?: number;
+  errorCategory?: string;
+  severity?: 'critical' | 'error' | 'warning' | 'info';
+  timestamp?: string;
+}
 
 /**
- * Custom log levels for the application, ordered by severity.
- * Each level has a specific use case:
- * - error: Critical issues that require immediate attention
- * - warn: Potential issues that don't break functionality
- * - info: Important business events and state changes
- * - http: HTTP request/response logging
- * - debug: Detailed information for development
+ * Enhanced error replacer that handles both standard Error and AppError objects.
+ * For AppError instances, it includes additional metadata like error codes and status.
+ * For standard Error objects, it maintains the basic message and stack information.
  * 
- * @example
- * ```typescript
- * // Error logging with context
- * logger.error('Failed to process payment', { 
- *   orderId: '123',
- *   error: paymentError 
- * });
- * 
- * // Info logging for business events
- * logger.info('User subscription updated', {
- *   userId: '456',
- *   plan: 'premium'
- * });
- * ```
+ * @param _key - The key being processed (not used in this implementation)
+ * @param value - The value being processed, which may be an Error or AppError object
+ * @returns A structured object containing error information, or the original value if it's not an error
  */
-const levels = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  http: 3,
-  debug: 4,
-} as const;
+function errorReplacer(_key: string, value: unknown) {
+  if (value instanceof AppError) {
+    return {
+      type: 'AppError',
+      name: value.name,
+      message: value.message,
+      code: value.code,
+      status: value.status,
+      statusText: HttpStatus[value.status],
+      details: value.details,
+      timestamp: value.timestamp,
+      stack: value.stack,
+    };
+  }
+  
+  if (value instanceof Error) {
+    return {
+      type: 'Error',
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+    };
+  }
+  
+  return value;
+}
 
 /**
- * Color mapping for different log levels in development console.
- * Colors are only applied in non-production environments.
+ * Extracts nested error messages and stacks from the log entry.
+ * This is useful for logging errors in a structured format.
+ * 
+ * @param info - The log entry to process
+ * @returns The log entry with the nested error message and stack
  */
-const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'white',
-} as const;
+const extractNestedError = winston.format((info) => {
+  if (info.error instanceof Error) {
+    info.message = `${info.message}: ${info.error.message}`;
+    info.stack = info.error.stack;
+    delete info.error;
+  }
+  return info;
+});
 
-// Add colors to Winston for development console output
-winston.addColors(colors);
+/**
+ * Custom format that enhances error metadata and standardizes error structure.
+ * This format ensures consistent error logging across all transports and adds
+ * useful context to error logs.
+ */
+const enhanceErrorMetadata = winston.format((info: LogInfo) => {
+  // Add correlation ID if available in the metadata
+  if (info.metadata?.correlationId) {
+    info.correlationId = info.metadata.correlationId;
+    delete info.metadata.correlationId;
+  }
+
+  // Add request context if available
+  if (info.metadata?.request) {
+    const { method, url, ip, userAgent } = info.metadata.request;
+    info.request = { method, url, ip, userAgent };
+    delete info.metadata.request;
+  }
+
+  // Enhance error information
+  if (info.error || info.type === 'AppError' || info.type === 'Error') {
+    // Add error category based on the error type
+    if (info.type === 'AppError') {
+      info.errorCategory = 'application';
+      // Map error codes to categories
+      switch (info.code) {
+        case ErrorCode.VALIDATION_ERROR:
+          info.errorCategory = 'validation';
+          break;
+        case ErrorCode.AUTHENTICATION_ERROR:
+        case ErrorCode.AUTHORIZATION_ERROR:
+          info.errorCategory = 'security';
+          break;
+        case ErrorCode.DATABASE_ERROR:
+          info.errorCategory = 'database';
+          break;
+        case ErrorCode.EXTERNAL_SERVICE_ERROR:
+          info.errorCategory = 'external';
+          break;
+      }
+    } else if (info.type === 'Error') {
+      info.errorCategory = 'system';
+    }
+
+    // Add severity level based on error type and status
+    const status = info.status as number | undefined;
+    if (status) {
+      if (status >= 500) {
+        info.severity = 'critical';
+      } else if (status >= 400) {
+        info.severity = 'error';
+      }
+    } else {
+      info.severity = 'error';
+    }
+
+    // Add timestamp if not present
+    if (!info.timestamp) {
+      info.timestamp = new Date().toISOString();
+    }
+  }
+
+  return info;
+});
 
 /**
  * Custom Winston format that enhances error handling and metadata formatting.
@@ -63,52 +159,12 @@ winston.addColors(colors);
  * - Custom AppError instances
  * - ErrorResponse objects from the API
  * - Regular log messages with metadata
- * 
- * @example
- * ```typescript
- * // Error object logging
- * logger.error(new Error('Database connection failed'));
- * // Output: {"timestamp":"2024-03-14 10:00:00:000","level":"error","message":"Error: Database connection failed","error":{"name":"Error","message":"Database connection failed","stack":"..."}}
- * 
- * // Custom error logging
- * logger.error(new AppError('VALIDATION_ERROR', 'Invalid input'));
- * // Output: {"timestamp":"2024-03-14 10:00:00:000","level":"error","message":"VALIDATION_ERROR: Invalid input","error":{"code":"VALIDATION_ERROR","message":"Invalid input",...}}
- * ```
  */
 const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.errors({ stack: true }),
-  winston.format((info) => {
-    const { message, ...meta } = info;
-
-    // Transform Error objects into structured format
-    if (message instanceof Error) {
-      const error = message;
-      return {
-        ...info,
-        message: `${error.name}: ${error.message}`,
-        error: {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          ...(error instanceof AppError ? error.toJSON() : {}),
-        },
-      };
-    }
-
-    // Transform ErrorResponse objects into structured format
-    if (message && typeof message === 'object' && 'code' in message && 'status' in message) {
-      const errorResponse = message as ErrorResponse;
-      return {
-        ...info,
-        message: `${errorResponse.code}: ${errorResponse.message}`,
-        error: errorResponse,
-      };
-    }
-
-    return info;
-  })(),
-  winston.format.json()
+  enhanceErrorMetadata(),
+  winston.format.json({ replacer: errorReplacer })
 );
 
 /**
@@ -145,7 +201,6 @@ const format = winston.format.combine(
  */
 const logger = winston.createLogger({
   level: config.LOG_LEVEL,
-  levels,
   format,
   defaultMeta: { service: 'athletiqly' },
   transports: [
@@ -157,31 +212,125 @@ const logger = winston.createLogger({
     // Combined logs for complete request tracing
     new winston.transports.File({
       filename: path.join('logs', 'combined.log'),
-    }),
-    // Exception logs for unhandled errors
-    new winston.transports.File({
-      filename: path.join('logs', 'exceptions.log'),
-      handleExceptions: true,
-      handleRejections: true,
-    }),
+    })
+  ],
+  exceptionHandlers: [
+    new winston.transports.File({ filename: 'exception.log' }),
+  ],
+  rejectionHandlers: [
+    new winston.transports.File({ filename: 'rejections.log' }),
   ],
 });
 
-// Add development console transport with colors and readable format
-if (config.NODE_ENV !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize({ all: true }),
-        winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          const metaString = Object.keys(meta).length
-            ? `\n${JSON.stringify(meta, null, 2)}`
-            : '';
-          return `${timestamp} ${level}: ${message}${metaString}`;
-        })
-      ),
-    })
-  );
+if (config.NODE_ENV === 'development') {
+  // Custom colors for different error types and status codes
+  const customColors = {
+    error: 'red',
+    warn: 'yellow',
+    info: 'green',
+    http: 'magenta',
+    debug: 'white',
+    AppError: 'red',
+    Error: 'red',
+    VALIDATION_ERROR: 'yellow',
+    AUTHENTICATION_ERROR: 'red',
+    AUTHORIZATION_ERROR: 'red',
+    NOT_FOUND_ERROR: 'blue',
+    CONFLICT_ERROR: 'yellow',
+    INTERNAL_ERROR: 'red',
+    EXTERNAL_SERVICE_ERROR: 'red',
+    DATABASE_ERROR: 'red',
+  };
+
+  winston.addColors(customColors);
+
+  logger.add(new winston.transports.Console({
+    level: config.LOG_LEVEL,
+    format: winston.format.combine(
+      winston.format.colorize({ all: true }),
+      winston.format.timestamp({ format: 'HH:mm:ss:ms' }),
+      winston.format.errors({ stack: true }),
+      enhanceErrorMetadata(),
+      extractNestedError(),
+      winston.format.printf(({ 
+        timestamp, 
+        level, 
+        message, 
+        stack, 
+        type, 
+        code, 
+        status, 
+        statusText, 
+        details, 
+        errorCategory,
+        severity,
+        correlationId,
+        request,
+        ...meta 
+      }: LogInfo) => {
+        // Base log line with timestamp and level
+        let output = `${timestamp} [${level}]: `;
+
+        // Add correlation ID if available
+        if (correlationId) {
+          output += `[${correlationId}] `;
+        }
+
+        // Handle error logging
+        if (type === 'AppError' || type === 'Error') {
+          // Add error type and category
+          output += `[${type}]`;
+          if (errorCategory) {
+            output += ` [${errorCategory}]`;
+          }
+          if (severity) {
+            output += ` [${severity}]`;
+          }
+
+          // Add error code and status for AppError
+          if (type === 'AppError') {
+            output += ` [${code}]`;
+            if (status) {
+              output += ` [${status} ${statusText}]`;
+            }
+          }
+          
+          // Add the error message
+          output += ` ${message}\n`;
+
+          // Add request context if available
+          if (request && 'method' in request) {
+            output += `\nRequest Context:\n`;
+            output += `  Method: ${request.method}\n`;
+            output += `  URL: ${request.url}\n`;
+            output += `  IP: ${request.ip}\n`;
+            output += `  User Agent: ${request.userAgent}\n`;
+          }
+
+          // Add stack trace if available
+          if (stack && typeof stack === 'string') {
+            output += `\nStack Trace:\n${stack.split('\n').slice(1).join('\n')}\n`;
+          }
+
+          // Add details if available
+          if (details) {
+            output += `\nDetails:\n${JSON.stringify(details, null, 2)}\n`;
+          }
+        } else {
+          // Regular log message
+          output += message;
+        }
+
+        // Add any additional metadata
+        const metaKeys = Object.keys(meta);
+        if (metaKeys.length > 0) {
+          output += `\nMetadata:\n${JSON.stringify(meta, null, 2)}`;
+        }
+
+        return output;
+      })
+    ),
+  }));
 }
 
 /**
@@ -203,12 +352,6 @@ export const stream = {
     logger.http(message.trim());
   },
 };
-
-/**
- * Type definition for log levels.
- * Used for type-safe logging throughout the application.
- */
-export type LogLevel = keyof typeof levels;
 
 // Export the configured logger instance
 export { logger };

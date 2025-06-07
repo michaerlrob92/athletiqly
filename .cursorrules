@@ -51,7 +51,7 @@ When refactoring:
 Use modern technnologies as described below for all code suggestions. Prioritize clean, maintainable code with appropriate comments.
 
 ## Architecture decisions
-For any architecture decisions an ADR should be made in docs\adr using the docs\adr\template.md template and approved as accepted by the user before implementing any change.
+For any architecture decisions an ADR should be made in docs/adr using the docs/adr/template.md template and approved as accepted by the user before implementing any change.
 
 ## Folder structure
 project-root/

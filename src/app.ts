@@ -7,11 +7,10 @@ import { config } from '@/config/environment';
 import { stream } from '@/utils/logger';
 import healthRoutes from '@/routes/health.routes';
 import { requestIdMiddleware } from '@/middleware/request-id.middleware';
-import { errorHandler, notFoundHandler } from '@/middleware/error.middleware';
+import { notFoundHandler } from '@/middleware/error.middleware';
 
 const app = express();
 
-// Add request ID middleware early in the chain
 app.use(requestIdMiddleware);
 
 // Security middleware
@@ -30,7 +29,6 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,12 +37,9 @@ if (config.NODE_ENV !== 'production') {
 }
 
 // Routes
-app.use('/', healthRoutes);
+app.use('/health', healthRoutes);
 
 // Not found handler (after all routes)
 app.use(notFoundHandler);
-
-// Error handler (last middleware)
-app.use(errorHandler);
 
 export default app;

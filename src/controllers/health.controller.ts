@@ -1,15 +1,13 @@
 import { Request, Response } from 'express';
-import { HealthService } from '../services/health.service';
-import { IRedisService } from '@/services/infrastructure/redis/redis.types';
-import { ICacheService } from '@/services/cache';
+import { HealthService } from '@/services/health.service';
 import { logger } from '@/utils/logger';
 import { RequestWithId } from '@/middleware/request-id.middleware';
 
-export class HealthController {
+class HealthController {
   private healthService: HealthService;
 
-  constructor(redisService: IRedisService, cacheService: ICacheService) {
-    this.healthService = new HealthService(redisService, cacheService);
+  constructor() {
+    this.healthService = new HealthService();
   }
 
   async checkHealth(req: Request, res: Response): Promise<void> {
@@ -20,24 +18,9 @@ export class HealthController {
       // Set appropriate status code based on health
       const statusCode = healthStatus.status === 'healthy' ? 200 : 503;
 
-      // Add cache headers
-      res.set({
-        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
-        'ETag': `"${healthStatus.timestamp}"`,
-        'Vary': 'Accept-Encoding',
-      });
-
-      // Check if client sent If-None-Match header
-      const ifNoneMatch = req.headers['if-none-match'];
-      if (ifNoneMatch === `"${healthStatus.timestamp}"`) {
-        res.status(304).end(); // Not Modified
-        return;
-      }
-
       res.status(statusCode).json({
         ...healthStatus,
         service: 'athletiqly',
-        version: process.env.npm_package_version || '1.0.0',
         requestId: reqWithId.id,
       });
     } catch (error) {
@@ -59,3 +42,5 @@ export class HealthController {
     await this.healthService.close();
   }
 }
+
+export default new HealthController();

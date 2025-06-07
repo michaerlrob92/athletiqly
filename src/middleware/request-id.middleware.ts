@@ -5,13 +5,13 @@ import { logger } from '@/utils/logger';
 /**
  * Extended Express Request interface that includes a unique request identifier.
  * This ID is used for request tracing, logging, and error tracking across the application.
- * 
+ *
  * The request ID enables:
  * - Distributed tracing across microservices
  * - Correlation of logs across different components
  * - Tracking of request lifecycle from start to finish
  * - Debugging of specific requests in production
- * 
+ *
  * @example
  * ```typescript
  * // In a route handler:
@@ -19,7 +19,7 @@ import { logger } from '@/utils/logger';
  *   logger.info(`Processing request ${req.id}`);
  *   // ... handler logic
  * });
- * 
+ *
  * // In error middleware:
  * app.use((err, req: RequestWithId, res, next) => {
  *   logger.error(`Request ${req.id} failed: ${err.message}`);
@@ -44,34 +44,34 @@ export const REQUEST_ID_HEADER = 'x-request-id';
 
 /**
  * Middleware to generate and track request IDs for request tracing and debugging.
- * 
+ *
  * This middleware implements a request tracing system that:
  * 1. Generates a unique request ID (UUID v4) if not provided in headers
  * 2. Adds the ID to the request object for use in route handlers
  * 3. Adds the ID to response headers for client-side tracking
  * 4. Ensures the ID is available for logging and error tracking
- * 
+ *
  * Performance considerations:
  * - Uses crypto.randomUUID() for cryptographically secure IDs
  * - Minimal overhead as UUID generation is fast
  * - No database or external service dependencies
  * - Memory efficient as IDs are stored in request object
- * 
+ *
  * Security considerations:
  * - UUIDs are cryptographically secure
  * - No sensitive information is exposed in the ID
  * - IDs are unique across requests
- * 
+ *
  * @example
  * ```typescript
  * // In app.ts:
  * app.use(requestIdMiddleware);
- * 
+ *
  * // In a route:
  * app.get('/api/users', (req: RequestWithId, res) => {
  *   logger.info(`Request ${req.id} processing user list`);
  * });
- * 
+ *
  * // Client-side usage:
  * fetch('/api/users', {
  *   headers: {
@@ -102,4 +102,4 @@ export const requestIdMiddleware = (
   }
 
   next();
-}; 
+};

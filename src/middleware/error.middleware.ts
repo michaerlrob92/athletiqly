@@ -1,27 +1,23 @@
 import { Request, Response, RequestHandler } from 'express';
-import {
-  ErrorResponse,
-  HttpStatus,
-  ErrorCode,
-} from '@/types/errors';
+import { ErrorResponse, HttpStatus, ErrorCode } from '@/types/errors';
 import { logger } from '../utils/logger';
 import { RequestWithId } from './request-id.middleware';
 
 /**
  * Not found handler for unmatched routes.
  * This should be placed after all routes but before the error handler.
- * 
+ *
  * Features:
  * - Consistent 404 error format
  * - Request ID tracking
  * - Warning level logging
  * - Clean error messages
- * 
+ *
  * @example
  * ```typescript
  * // In app.ts:
  * app.use(notFoundHandler);
- * 
+ *
  * // Response for unmatched route:
  * {
  *   "code": "NOT_FOUND_ERROR",

@@ -28,7 +28,7 @@ class HealthController {
         error,
         requestId: (req as RequestWithId).id,
       });
-      
+
       res.status(500).json({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),

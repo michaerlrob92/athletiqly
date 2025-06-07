@@ -12,7 +12,7 @@ interface HealthStatus {
 
 export class HealthService {
   private prisma: PrismaClient;
-  
+
   constructor() {
     this.prisma = new PrismaClient();
   }
@@ -33,9 +33,8 @@ export class HealthService {
       healthStatus.database.status = 'connected';
 
       // Update overall status
-      const isUnhealthy = 
-        healthStatus.database.status !== 'connected';
-      
+      const isUnhealthy = healthStatus.database.status !== 'connected';
+
       if (isUnhealthy) {
         healthStatus.status = 'unhealthy';
       }
